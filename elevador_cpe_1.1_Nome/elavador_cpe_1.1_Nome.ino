@@ -12,30 +12,28 @@
   
   int RPWM_Output = 5; // Arduino PWM output pin 5; connect to IBT-2 pin 1 (RPWM) 
   int LPWM_Output = 6; // Arduino PWM output pin 6; connect to IBT-2 pin 2 (LPWM) 
+  
   int SOBE = 3;//Porta que comando o sentido horario 
   int LIGA = 2; 
   int DESCE = 4; //Porta que comanda o sentido anti-horario 
   int RESET = 10; 
   int SALVASOBE = 11;
   int SALVADESCE = 12;
-  int sensor = 15;
-  int buttonPin = 9; // número do pino pushbutton   
-  int verificadescida = 0;
- 
-  int estado = 0;
+  int encoder = 15;
+  const int voltageSensor = A0;
+
+  int verificadescida = 0; // 0 = nada salvo; 1 = descida salva; 2 = ?; 3 = subida salva // subida ; 4 = desceu
+  int estado = 0;  // 0 = desligado; 1 = ligado; 2 = de fabrica;
   int motor = 0;   
-  int sensorcorrente;   
   int posicaoFinal1 = 0;
   int posicaoFinal2 = 0;
   int posicaoAtual1 = EEPROM.read(2);
   int posicaoAtual2 = EEPROM.read(3);
-  const int pinoSensor = A0;
   const float VCC   = 5.0;// supply voltage is from 4.5 to 5.5V. Normally 5V.
   const float QOV =   0.5 * VCC;// set quiescent Output voltage of 0.5V
   float voltage;// internal variable for voltage  
   float current=0;
   float voltage_raw=0;
-  int salvamento = 0;
   //=============================================================== 
    
 void setup() { 
@@ -52,14 +50,14 @@ void setup() {
     pinMode(RESET, INPUT); 
     pinMode(SALVASOBE, INPUT); 
     pinMode(SALVADESCE, INPUT); 
-    pinMode(pinoSensor,INPUT); 
-    pinMode(sensor,INPUT);
+    pinMode(voltageSensor,INPUT); 
+    pinMode(encoder,INPUT);
 }
 
 void calcula() {//calcula a corrente para comparaçao do peso  
     current = 0.0;    
     for(int i =0;i<100;i++){//calculo corrente
-      voltage_raw =   (5.0 / 1023.0)* analogRead(pinoSensor);// Read the voltage from sensor
+      voltage_raw =   (5.0 / 1023.0)* analogRead(voltageSensor);// Read the voltage from sensor
       voltage =  voltage_raw - QOV + 0.012 ;// 0.000 is a value to make voltage zero when there is no current
       current = current +(voltage / 0.100);                             
     }            
@@ -89,8 +87,8 @@ void salva_subida(){
 
     while(motor){       
         calcula();     
-        if(digitalRead(sensor)==HIGH){//faz a contagem de quantas voltas foram feitas na polia
-            while (digitalRead(sensor) == HIGH); 
+        if(digitalRead(encoder)==HIGH){//faz a contagem de quantas voltas foram feitas na polia
+            while (digitalRead(encoder) == HIGH); 
             if(posicaoAtual1 == 255){
                 posicaoAtual1 = 0;
                 posicaoAtual2++;
@@ -103,7 +101,10 @@ void salva_subida(){
         if(digitalRead(SALVASOBE) == HIGH ){//identifica o aperto do botao, para o salvamento da subida
             while (digitalRead(SALVASOBE) == HIGH);
             lcd.clear();
-            lcd.print("Subida Salva"); 
+            lcd.setCursor(0, 0);
+            lcd.print("Subida Salva");
+            lcd.setCursor(0, 1); 
+            lcd.print("Programacao com sucesso");  
             analogWrite(LPWM_Output, 0); 
             analogWrite(RPWM_Output, 0); 
             motor = 0;
@@ -132,7 +133,10 @@ void salva_descida(){
         if(digitalRead(SALVADESCE) == HIGH ){
             while (digitalRead(SALVADESCE) == HIGH);
             lcd.clear();
-            lcd.print("Descida Salva");    
+            lcd.setCursor(0, 0);
+            lcd.print("Descida Salva");
+            lcd.setCursor(0, 1); 
+            lcd.print("Programacao subida");   
             analogWrite(LPWM_Output, 0); 
             analogWrite(RPWM_Output, 0); 
             motor = 0;
@@ -164,8 +168,8 @@ void func_descida(){
 
     while(motor){     
         calcula(); 
-        if(digitalRead(sensor)==HIGH){ 
-            while (digitalRead(sensor) == HIGH);
+        if(digitalRead(encoder)==HIGH){ 
+            while (digitalRead(encoder) == HIGH);
             if(posTotal > 0){
                 posTotal--;  
             }
@@ -179,7 +183,7 @@ void func_descida(){
         }
     }
 
-    verificadescida=4;
+    verificadescida = 4;
     posicaoAtual1 = 0;
     posicaoAtual2 = 0;
     EEPROM.write(2, posicaoAtual1);
@@ -206,8 +210,8 @@ void func_subida(){
         calcula();
         //lcd.setCursor(10, 1);
         //lcd.print(current);              
-        if(digitalRead(sensor)==HIGH){ 
-            while (digitalRead(sensor) == HIGH);
+        if(digitalRead(encoder)==HIGH){ 
+            while (digitalRead(encoder) == HIGH);
             posFinalTotal++;
             //lcd.setCursor(0, 1); 
             //lcd.print(posFinalTotal);
@@ -217,7 +221,8 @@ void func_subida(){
             lcd.print("Chegou no topo"); 
             analogWrite(LPWM_Output, 0); 
             analogWrite(RPWM_Output, 0); 
-            motor = 0;}
+            motor = 0;
+        }
             verificadescida=3;
         }
 
@@ -237,6 +242,21 @@ void loop() {
 
 // ----- SALVAMENTO ------ 
 
+//de Fabrica
+    if(estado == 2 && digitalRead(LIGA) == HIGH){
+        while (digitalRead(LIGA) == HIGH); 
+        EEPROM.write(1, 0);
+        analogWrite(LPWM_Output, 0); 
+        analogWrite(RPWM_Output, 0); 
+        lcd.setBacklight(HIGH); 
+        lcd.clear(); 
+        lcd.setCursor(0, 0); 
+        lcd.print("Pressione reset"); 
+        lcd.setCursor(0, 1); 
+        lcd.print("Elevadores Harah"); 
+        estado = 1;
+    }
+
 //salva subida
     if (digitalRead(SALVASOBE) == HIGH && estado==1 && verificadescida==1){
         while (digitalRead(SALVASOBE) == HIGH);
@@ -252,7 +272,7 @@ void loop() {
 // ----- liga, desliga e reset ------ 
  
 //LIGA
-    else if ( estado == 0 && digitalRead(LIGA) == HIGH ) {
+    else if (estado == 0 && digitalRead(LIGA) == HIGH) {
         while (digitalRead(LIGA) == HIGH); 
         
         EEPROM.write(1, 0);
@@ -268,7 +288,7 @@ void loop() {
     }
 
 //DESLIGA
-    else if ( estado == 1 && digitalRead(LIGA) == HIGH ) {
+    else if (estado == 1 && digitalRead(LIGA) == HIGH) {
         while (digitalRead(LIGA) == HIGH); 
 
         analogWrite(LPWM_Output, 0); 
@@ -279,13 +299,21 @@ void loop() {
     }
 
 //RESET
-    else if(estado == 1 && digitalRead(RESET) == HIGH){
+    else if(digitalRead(RESET) == HIGH){
         while(digitalRead(RESET) == HIGH);
 
-        lcd.setBacklight(HIGH); 
-        lcd.clear(); 
-        lcd.setCursor(0, 0); 
-        lcd.print("RESET");
+        if(estado == 0){ //se tiver desligado
+            estado = 2; // vai resetar de fabrica
+        }
+        else if(estado == 1){
+            lcd.setBacklight(HIGH); 
+            lcd.clear(); 
+            lcd.setCursor(0, 0); 
+            lcd.print("RESET");
+            lcd.setCursor(0, 1); 
+            lcd.print("Programacao descida"); 
+        }
+
         analogWrite(LPWM_Output, 0);
         analogWrite(RPWM_Output, 0);
 
@@ -294,7 +322,6 @@ void loop() {
         posicaoAtual1 = 0;
         posicaoAtual2 = 0;
         verificadescida = 0;
-        salvamento = 1;
 
         EEPROM.write(0, posicaoFinal1);
         EEPROM.write(2, posicaoAtual1);
@@ -306,13 +333,13 @@ void loop() {
 // ----- sobe e desce ------ 
 
 //Subida     
-    if ((digitalRead(SOBE) == HIGH && estado==1 && verificadescida==4) || ((digitalRead(SOBE) == HIGH && estado==1 &&  EEPROM.read(2) == 0 && EEPROM.read(3) == 0) && verificadescida!=1 && verificadescida!=3 && EEPROM.read(1)==0)) {        
+    if (  (digitalRead(SOBE) == HIGH && estado==1 && verificadescida==4)   ||   ((digitalRead(SOBE) == HIGH && estado==1 &&  EEPROM.read(2) == 0 && EEPROM.read(3) == 0) && verificadescida!=1 && verificadescida!=3 && EEPROM.read(1)==0)  ) {        
         while (digitalRead(SOBE) == HIGH);
         func_subida();
     }
 
 //Descida
-    else if ((digitalRead(DESCE) == HIGH && estado==1 && verificadescida==3) || ((digitalRead(DESCE) == HIGH && estado==1 &&  (EEPROM.read(2)+EEPROM.read(3)*255) == (EEPROM.read(0)+EEPROM.read(5)*255)) && verificadescida!=1 && verificadescida!=3 && EEPROM.read(1)==0 )) {          
+    else if (  (digitalRead(DESCE) == HIGH && estado==1 && verificadescida==3)   ||   ((digitalRead(DESCE) == HIGH && estado==1 && ( EEPROM.read(2)+EEPROM.read(3)*255) == (EEPROM.read(0)+EEPROM.read(5)*255) ) && verificadescida!=1 && verificadescida!=3 && EEPROM.read(1)==0 )  ) {          
         while (digitalRead(DESCE) == HIGH);
         func_descida();
     }
