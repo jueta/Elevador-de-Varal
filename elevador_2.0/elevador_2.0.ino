@@ -48,7 +48,7 @@ const float QOV =   0.5 * VCC;// set quiescent Output voltage of 0.5V.
 float voltage;// internal variable for voltage  
 float current=0;
 float voltage_raw=0;
-unsigned long timeCounter = 0;
+unsigned long timeCounter;
 
 
 //Variaveis de estado
@@ -65,10 +65,6 @@ void setup() {
     lcd.setCursor(3, 0);
     lcd.setBacklight(LOW);
     onOff = 0;
-    lcd.setCursor(0, 0); 
-    lcd.print("Elevadores Harah"); 
-    lcd.setCursor(0, 1); 
-    lcd.print("Pressione Reset"); 
     state = FABRICA;
     pinMode(RPWM_Output, OUTPUT); 
     pinMode(LPWM_Output, OUTPUT); 
@@ -94,12 +90,12 @@ void calcula() {//calcula a corrente para comparaçao do peso
     }            
     current = current/100;    
 
-    if(current > 14){
+    if(current > 14){   //MUDAR PARA 14 depois
         lcd.clear();
         lcd.setCursor(0,0);
         lcd.print("Sobrecarga");
         lcd.setCursor(0, 1); 
-        lcd.print("Tecle botao descer");  
+        lcd.print("Descer Elevador");  
         state = SOBRECARGA;
         analogWrite(LPWM_Output, 0);
         analogWrite(RPWM_Output, 0);
@@ -126,7 +122,7 @@ void salva_descida(){
             lcd.setCursor(0, 0);
             lcd.print("Descida Salva");
             lcd.setCursor(0, 1); 
-            lcd.print("use salvar subida");   
+            lcd.print("salvar subida");   
             analogWrite(LPWM_Output, 0); 
             analogWrite(RPWM_Output, 0); 
             motor = 0;
@@ -156,8 +152,7 @@ void salva_subida(){
        
         if(digitalRead(encoder)==HIGH){//faz a contagem de quantas voltas foram feitas na polia
             while (digitalRead(encoder) == HIGH); 
-            posicaoAtual++;
-            posicaoFinal = posicaoAtual;
+            posicaoFinal++;
         }
 
         if(digitalRead(BOTAO_SALVA_SOBE) == HIGH){//identifica o aperto do botao, para o salvamento da subida
@@ -166,12 +161,15 @@ void salva_subida(){
             lcd.setCursor(0, 0);
             lcd.print("Subida Salva");
             lcd.setCursor(0, 1); 
-            lcd.print("Programacao salva");  
+            lcd.print("Elevador Pronto");  
             analogWrite(LPWM_Output, 0); 
             analogWrite(RPWM_Output, 0); 
             motor = 0;
+            posicaoAtual = posicaoFinal;
             EEPROM.write(0, posicaoAtual);
             EEPROM.write(1, posicaoFinal);
+            delay(2000);
+            lcd.clear();
         }
         
         if(posicaoAtual == MAX_CORDA){
@@ -183,6 +181,8 @@ void salva_subida(){
             analogWrite(LPWM_Output, 0); 
             analogWrite(RPWM_Output, 0); 
             motor = 0;
+            delay(2000);
+            lcd.clear();
             state = CORDA_NO_LIMITE;
         }                     
     }
@@ -191,7 +191,6 @@ void salva_subida(){
 
 void func_descida(){
     lcd.setBacklight(HIGH); 
-    lcd.clear(); 
     lcd.setCursor(0, 1); 
     lcd.print("Varal descendo");
     analogWrite(LPWM_Output, 0); 
@@ -211,7 +210,7 @@ void func_descida(){
                 EEPROM.write(0, posicaoAtual);
             }
             else{
-            lcd.clear(); 
+            lcd.setCursor(0, 1); 
             lcd.print("Chegou embaixo"); 
             analogWrite(LPWM_Output, 0); 
             analogWrite(RPWM_Output, 0); 
@@ -230,7 +229,6 @@ void func_subida(){
     posicaoFinal = EEPROM.read(1);
 
     lcd.setBacklight(HIGH); 
-    lcd.clear(); 
     lcd.setCursor(0, 1); 
     lcd.print("Varal Subindo");
 
@@ -238,13 +236,13 @@ void func_subida(){
 
     while(motor){
         calcula();
-        //lcd.setCursor(10, 1);
-        //lcd.print(current);              
+        lcd.setCursor(10, 1);
+        lcd.print(current);              
         if(digitalRead(encoder)==HIGH){ 
             while (digitalRead(encoder) == HIGH);
 
         if(posicaoAtual == posicaoFinal){
-            lcd.clear(); 
+            lcd.setCursor(0, 1); 
             lcd.print("Chegou no topo"); 
             analogWrite(LPWM_Output, 0); 
             analogWrite(RPWM_Output, 0); 
@@ -266,7 +264,7 @@ void func_reset(){
     lcd.setCursor(0, 0); 
     lcd.print("RESET");
     lcd.setCursor(0, 1); 
-    lcd.print("use salvar descida");
+    lcd.print("salvar descida");
 
     analogWrite(LPWM_Output, 0);
     analogWrite(RPWM_Output, 0);
@@ -297,6 +295,21 @@ void loop() {
             lcd.setBacklight(HIGH); 
             lcd.setCursor(0, 0); 
             lcd.print("Elevadores Harah"); 
+
+            if(state == ELEVADOR_EM_BAIXO){
+                lcd.setCursor(0, 1); 
+                lcd.print("Tecle subir"); 
+            }
+
+            if(state == ELEVADOR_EM_CIMA){
+                lcd.setCursor(0, 1); 
+                lcd.print("Tecle descer"); 
+            }
+
+            if(state == FABRICA){
+                lcd.setCursor(0, 1); 
+                lcd.print("Tecle RESET"); 
+            }
 
             
         }
@@ -335,10 +348,10 @@ void loop() {
 
             case RESETADO: {
 
-                timeCounter = 0;
                 if(digitalRead(BOTAO_RESET) == HIGH){
+                    timeCounter = millis();
                     while(digitalRead(BOTAO_RESET) == HIGH){  // RESET estado de fabrica
-                        if((timeCounter - millis()) >= 5000){
+                        if((millis() - timeCounter) >= 5000){
                         lcd.setBacklight(HIGH); 
                         lcd.clear(); 
                         lcd.setCursor(0, 0); 
