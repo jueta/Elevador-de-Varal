@@ -1,5 +1,5 @@
 {
     "board": "arduino:avr:uno",
     "sketch": "elevador_2.0\\elevador_2.0.ino",
-    "port": "COM5"
+    "port": "COM7"
 }
