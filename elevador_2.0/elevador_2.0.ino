@@ -145,7 +145,7 @@ void salva_subida(){
     lcd.clear();
     lcd.setCursor(0, 0);
     lcd.print("Salvando Subida");
-    analogWrite(LPWM_Output, 190);
+    analogWrite(LPWM_Output, 170);
     analogWrite(RPWM_Output, 0);
     motor = 1;
     posicaoAtual = EEPROM.read(0);
@@ -224,7 +224,7 @@ void func_descida(){
 
 
 void func_subida(){
-    analogWrite(LPWM_Output, 190); 
+    analogWrite(LPWM_Output, 170); 
     analogWrite(RPWM_Output, 0); 
     posicaoAtual = EEPROM.read(0);
     posicaoFinal = EEPROM.read(1);
