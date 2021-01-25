@@ -4,8 +4,7 @@
 //=============================================================== 
 
 
-#define NOME ""
-#define MAX_CORDA 500
+#define MAX_CORDA 50
 
 //BIBLIOTECAS
 #include <Wire.h> 
@@ -20,11 +19,9 @@ LiquidCrystal_I2C lcd(0x27, 2, 1, 0, 4, 5, 6, 7, 3, POSITIVE);
 #define FABRICA 0
 #define RESETADO 1
 #define DESCIDA_SALVADA 2
-//#define SUBIDA_SALVADA 3
-#define ELEVADOR_EM_CIMA 4
-#define ELEVADOR_EM_BAIXO 5
-#define SOBRECARGA 6
-#define CORDA_NO_LIMITE 7
+#define ELEVADOR_EM_CIMA 3
+#define ELEVADOR_EM_BAIXO 4
+#define SOBRECARGA 5
 
 //PINOS
 int RPWM_Output = 5; // Arduino PWM output pin 5; connect to IBT-2 pin 1 (RPWM) 
@@ -92,16 +89,20 @@ void calcula() {//calcula a corrente para comparaçao do peso
 
     if(current > 14){   //MUDAR PARA 14 depois
         lcd.clear();
-        lcd.setCursor(0,0);
-        lcd.print("Sobrecarga");
-        lcd.setCursor(0, 1); 
-        lcd.print("Descer Elevador");  
-        state = SOBRECARGA;
         analogWrite(LPWM_Output, 0);
         analogWrite(RPWM_Output, 0);
         motor = 0;
-        EEPROM.write(0, posicaoAtual);
-        EEPROM.write(1, posicaoFinal);
+        
+        lcd.setCursor(0,0);
+        lcd.print("Sobrecarga");
+
+        if(state == DESCIDA_SALVADA){
+            lcd.setCursor(0,1);
+            lcd.print("use RESET");
+        }
+        else{
+            state = SOBRECARGA;
+        }
     }
 }
 
@@ -115,7 +116,25 @@ void salva_descida(){
     analogWrite(RPWM_Output, 170); 
     motor = 1; 
 
+    int auxMaxCorda = 0;
+
     while(motor){ 
+
+        if(digitalRead(encoder)==HIGH){   //  MAX CORDA
+            while (digitalRead(encoder) == HIGH); 
+            auxMaxCorda++;
+
+            if(auxMaxCorda == MAX_CORDA){
+                lcd.clear();
+                lcd.setCursor(0, 0);
+                lcd.print("Chegou ao Maximo");
+                lcd.setCursor(0, 1); 
+                lcd.print("Descida salva");  
+                analogWrite(LPWM_Output, 0); 
+                analogWrite(RPWM_Output, 0); 
+                motor = 0;
+            }
+        }
         if(digitalRead(BOTAO_SALVA_DESCE) == HIGH ){
             while (digitalRead(BOTAO_SALVA_DESCE) == HIGH);
             lcd.clear();
@@ -126,13 +145,9 @@ void salva_descida(){
             analogWrite(LPWM_Output, 0); 
             analogWrite(RPWM_Output, 0); 
             motor = 0;
-            posicaoAtual = 0;
-            posicaoFinal = 0;
         }
     }
 
-    EEPROM.write(0, posicaoAtual);
-    EEPROM.write(1, posicaoFinal);
 }
 
 
@@ -144,18 +159,18 @@ void salva_subida(){
     analogWrite(LPWM_Output, 170);
     analogWrite(RPWM_Output, 0);
     motor = 1;
-    posicaoAtual = EEPROM.read(0);
-    posicaoFinal = EEPROM.read(1);
+    posicaoAtual = 0;
+    posicaoFinal = 0;
 
     while(motor){       
         calcula();     
        
-        if(digitalRead(encoder)==HIGH){//faz a contagem de quantas voltas foram feitas na polia
+        if(digitalRead(encoder)==HIGH){
             while (digitalRead(encoder) == HIGH); 
             posicaoFinal++;
         }
 
-        if(digitalRead(BOTAO_SALVA_SOBE) == HIGH){//identifica o aperto do botao, para o salvamento da subida
+        if(digitalRead(BOTAO_SALVA_SOBE) == HIGH){
             while (digitalRead(BOTAO_SALVA_SOBE) == HIGH);
             lcd.clear();
             lcd.setCursor(0, 0);
@@ -168,24 +183,10 @@ void salva_subida(){
             posicaoAtual = posicaoFinal;
             EEPROM.write(0, posicaoAtual);
             EEPROM.write(1, posicaoFinal);
-            delay(2000);
-            lcd.clear();
         }
-        
-        if(posicaoAtual == MAX_CORDA){
-            lcd.clear();
-            lcd.setCursor(0, 0);
-            lcd.print("Chegou ao Maximo");
-            lcd.setCursor(0, 1); 
-            lcd.print("Programacao salva");  
-            analogWrite(LPWM_Output, 0); 
-            analogWrite(RPWM_Output, 0); 
-            motor = 0;
-            delay(2000);
-            lcd.clear();
-            state = CORDA_NO_LIMITE;
-        }                     
     }
+    delay(2000);
+    lcd.clear();
 }
     
 
@@ -426,7 +427,8 @@ void loop() {
 
                 break;
             }
-            
+
+
             case ELEVADOR_EM_BAIXO: {
                 
                 if(digitalRead(BOTAO_SOBE) == HIGH){
@@ -463,17 +465,6 @@ void loop() {
                     func_reset();
                     state = RESETADO;
                 }
-
-                if(digitalRead(BOTAO_LIGA) == HIGH){
-                    while(digitalRead(BOTAO_LIGA) == HIGH);
-                    onOff = 0;
-                }
-
-                break;
-            }
-
-            
-            case CORDA_NO_LIMITE: {
 
                 if(digitalRead(BOTAO_LIGA) == HIGH){
                     while(digitalRead(BOTAO_LIGA) == HIGH);
