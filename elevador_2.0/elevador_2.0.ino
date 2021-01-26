@@ -24,15 +24,15 @@ LiquidCrystal_I2C lcd(0x27, 2, 1, 0, 4, 5, 6, 7, 3, POSITIVE);
 #define SOBRECARGA 5
 
 //PINOS
-int RPWM_Output = 5; // Arduino PWM output pin 5; connect to IBT-2 pin 1 (RPWM) 
-int LPWM_Output = 6; // Arduino PWM output pin 6; connect to IBT-2 pin 2 (LPWM) 
-int BOTAO_SOBE = 3; 
-int BOTAO_LIGA = 2; 
-int BOTAO_DESCE = 4; 
-int BOTAO_RESET = 10; 
-int BOTAO_SALVA_SOBE = 11;
-int BOTAO_SALVA_DESCE = 12;
-int encoder = 15;
+const int RPWM_Output = 5; // Arduino PWM output pin 5; connect to IBT-2 pin 1 (RPWM) 
+const int LPWM_Output = 6; // Arduino PWM output pin 6; connect to IBT-2 pin 2 (LPWM) 
+const int BOTAO_SOBE = 3; 
+const int BOTAO_LIGA = 2; 
+const int BOTAO_DESCE = 4; 
+const int BOTAO_RESET = 10; 
+const int BOTAO_SALVA_SOBE = 11;
+const int BOTAO_SALVA_DESCE = 12;
+const int encoder = 15;
 const int voltageSensor = A0;
 
 
@@ -62,7 +62,9 @@ void setup() {
     lcd.setCursor(3, 0);
     lcd.setBacklight(LOW);
     onOff = 0;
-    state = FABRICA;
+    posicaoAtual = EEPROM.read(0);
+    posicaoFinal = EEPROM.read(1);
+    state = EEPROM.read(2);
     pinMode(RPWM_Output, OUTPUT); 
     pinMode(LPWM_Output, OUTPUT); 
     pinMode(BOTAO_SOBE, INPUT); 
@@ -78,7 +80,7 @@ void setup() {
 
 
 
-void calcula() {//calcula a corrente para comparaçao do peso  
+void calcula() {    //calcula a corrente para comparaçao do peso  
     current = 0.0;    
     for(int i =0;i<100;i++){//calculo corrente
       voltage_raw =   (5.0 / 1023.0)* analogRead(voltageSensor);// Read the voltage from sensor
@@ -102,6 +104,7 @@ void calcula() {//calcula a corrente para comparaçao do peso
         }
         else{
             state = SOBRECARGA;
+            EEPROM.write(2, state);
         }
     }
 }
@@ -161,6 +164,8 @@ void salva_subida(){
     motor = 1;
     posicaoAtual = 0;
     posicaoFinal = 0;
+    EEPROM.write(0, posicaoAtual);
+    EEPROM.write(1, posicaoFinal);
 
     while(motor){       
         calcula();     
@@ -206,16 +211,16 @@ void func_descida(){
         if(digitalRead(encoder)==HIGH){ 
             while (digitalRead(encoder) == HIGH);
             
-            if(posicaoAtual > 0){
-                posicaoAtual--;
-                EEPROM.write(0, posicaoAtual);
+            if(posicaoAtual == 0){
+                lcd.setCursor(0, 1); 
+                lcd.print("Chegou embaixo"); 
+                analogWrite(LPWM_Output, 0); 
+                analogWrite(RPWM_Output, 0); 
+                motor = 0;
             }
             else{
-            lcd.setCursor(0, 1); 
-            lcd.print("Chegou embaixo"); 
-            analogWrite(LPWM_Output, 0); 
-            analogWrite(RPWM_Output, 0); 
-            motor = 0;
+                posicaoAtual--;
+                EEPROM.write(0, posicaoAtual);
             }
         }
     }
@@ -237,8 +242,6 @@ void func_subida(){
 
     while(motor){
         calcula();
-        lcd.setCursor(10, 1);
-        lcd.print(current);              
         if(digitalRead(encoder)==HIGH){ 
             while (digitalRead(encoder) == HIGH);
 
@@ -340,7 +343,9 @@ void loop() {
                 if(digitalRead(BOTAO_RESET) == HIGH){
                     while(digitalRead(BOTAO_RESET) == HIGH);
                     func_reset();
-                    state = RESETADO;   
+                    state = RESETADO; 
+                    EEPROM.write(2,state);
+
                 }
 
                 break;
@@ -363,6 +368,7 @@ void loop() {
                         lcd.setCursor(0, 1); 
                         lcd.print("Pressione Reset"); 
                         state = FABRICA;
+                        EEPROM.write(2,state);
                         }
                     }
                 }
@@ -376,6 +382,7 @@ void loop() {
                     while (digitalRead(BOTAO_SALVA_DESCE) == HIGH);
                     salva_descida();
                     state = DESCIDA_SALVADA;
+                    EEPROM.write(2,state);
                 }     
 
                 break;   
@@ -389,12 +396,14 @@ void loop() {
                     while(digitalRead(BOTAO_SALVA_SOBE) == HIGH);
                     salva_subida();
                     state = ELEVADOR_EM_CIMA;
+                    EEPROM.write(2,state);
                 }
 
                 if(digitalRead(BOTAO_RESET) == HIGH){
                     while(digitalRead(BOTAO_RESET) == HIGH);
                     func_reset();
                     state = RESETADO;   
+                    EEPROM.write(2,state);
                 }
 
                 if(digitalRead(BOTAO_LIGA) == HIGH){
@@ -412,12 +421,14 @@ void loop() {
                     while(digitalRead(BOTAO_DESCE) == HIGH);
                     func_descida();
                     state = ELEVADOR_EM_BAIXO;
+                    EEPROM.write(2,state);
                 }
                 
                 if(digitalRead(BOTAO_RESET) == HIGH){
                     while(digitalRead(BOTAO_RESET) == HIGH);
                     func_reset();
                     state = RESETADO;
+                    EEPROM.write(2,state);
                 }
 
                 if(digitalRead(BOTAO_LIGA) == HIGH){
@@ -435,12 +446,14 @@ void loop() {
                     while(digitalRead(BOTAO_SOBE) == HIGH);
                     func_subida();
                     state = ELEVADOR_EM_CIMA;
+                    EEPROM.write(2,state);
                 }
                 
                 if(digitalRead(BOTAO_RESET) == HIGH){
                     while(digitalRead(BOTAO_RESET) == HIGH);
                     func_reset();
                     state = RESETADO;
+                    EEPROM.write(2,state);
                 }
 
                 if(digitalRead(BOTAO_LIGA) == HIGH){
@@ -458,12 +471,14 @@ void loop() {
                     while(digitalRead(BOTAO_DESCE) == HIGH);
                     func_descida();
                     state = ELEVADOR_EM_BAIXO;
+                    EEPROM.write(2,state);
                 }
                 
                 if(digitalRead(BOTAO_RESET) == HIGH){
                     while(digitalRead(BOTAO_RESET) == HIGH);
                     func_reset();
                     state = RESETADO;
+                    EEPROM.write(2,state);
                 }
 
                 if(digitalRead(BOTAO_LIGA) == HIGH){
