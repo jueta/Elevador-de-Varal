@@ -4,7 +4,7 @@
 //=============================================================== 
 
 
-#define MAX_CORDA 50
+#define MAX_CORDA 120
 
 //BIBLIOTECAS
 #include <Wire.h> 
@@ -12,6 +12,7 @@
 #include<LCD.h>
 #include <LiquidCrystal.h> 
 #include <EEPROM.h>
+#include <avr/wdt.h>
 
 LiquidCrystal_I2C lcd(0x27, 2, 1, 0, 4, 5, 6, 7, 3, POSITIVE); 
 
@@ -75,6 +76,7 @@ void setup() {
     pinMode(BOTAO_SALVA_DESCE, INPUT); 
     pinMode(voltageSensor,INPUT); 
     pinMode(encoder,INPUT);
+    wdt_enable(WDTO_8S);
 }
 
 
@@ -149,7 +151,13 @@ void salva_descida(){
             analogWrite(RPWM_Output, 0); 
             motor = 0;
         }
+        wdt_reset();
     }
+    posicaoAtual = 0;
+    posicaoFinal = 0;
+
+    EEPROM.write(0, posicaoAtual);
+    EEPROM.write(1, posicaoFinal);
 
 }
 
@@ -162,10 +170,8 @@ void salva_subida(){
     analogWrite(LPWM_Output, 170);
     analogWrite(RPWM_Output, 0);
     motor = 1;
-    posicaoAtual = 0;
-    posicaoFinal = 0;
-    EEPROM.write(0, posicaoAtual);
-    EEPROM.write(1, posicaoFinal);
+    posicaoAtual = EEPROM.read(0);
+    posicaoFinal = EEPROM.read(1);
 
     while(motor){       
         calcula();     
@@ -189,6 +195,7 @@ void salva_subida(){
             EEPROM.write(0, posicaoAtual);
             EEPROM.write(1, posicaoFinal);
         }
+        wdt_reset();
     }
     delay(2000);
     lcd.clear();
@@ -211,6 +218,8 @@ void func_descida(){
         if(digitalRead(encoder)==HIGH){ 
             while (digitalRead(encoder) == HIGH);
             
+            posicaoAtual--;
+
             if(posicaoAtual == 0){
                 lcd.setCursor(0, 1); 
                 lcd.print("Chegou embaixo"); 
@@ -218,11 +227,9 @@ void func_descida(){
                 analogWrite(RPWM_Output, 0); 
                 motor = 0;
             }
-            else{
-                posicaoAtual--;
-                EEPROM.write(0, posicaoAtual);
-            }
+            EEPROM.write(0, posicaoAtual);
         }
+        wdt_reset();
     }
     EEPROM.write(0, posicaoAtual);
 }
@@ -244,19 +251,19 @@ void func_subida(){
         calcula();
         if(digitalRead(encoder)==HIGH){ 
             while (digitalRead(encoder) == HIGH);
-
-        if(posicaoAtual == posicaoFinal){
-            lcd.setCursor(0, 1); 
-            lcd.print("Chegou no topo"); 
-            analogWrite(LPWM_Output, 0); 
-            analogWrite(RPWM_Output, 0); 
-            motor = 0;
-        }else{
+            
             posicaoAtual++;
-            EEPROM.write(0, posicaoAtual);
-        }
-        } 
 
+            if(posicaoAtual == posicaoFinal){
+                lcd.setCursor(0, 1); 
+                lcd.print("Chegou no topo"); 
+                analogWrite(LPWM_Output, 0); 
+                analogWrite(RPWM_Output, 0); 
+                motor = 0;
+            }
+            EEPROM.write(0, posicaoAtual);
+        } 
+        wdt_reset();
     }
     EEPROM.write(0, posicaoAtual);
 }
@@ -278,6 +285,7 @@ void func_reset(){
 
     EEPROM.write(0, posicaoAtual);
     EEPROM.write(1, posicaoFinal);
+    wdt_reset();
 }
 
 
@@ -492,5 +500,5 @@ void loop() {
 
         }
     }
-
+    wdt_reset();
 }
