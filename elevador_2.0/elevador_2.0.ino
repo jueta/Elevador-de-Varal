@@ -41,11 +41,11 @@ const int voltageSensor = A0;
 int motor = 0;   
 volatile unsigned long posicaoAtual = 0;
 volatile unsigned long posicaoFinal = 0;
-const float VCC   = 5.0;// supply voltage is from 4.5 to 5.5V. Normally 5V.
-const float QOV =   0.5 * VCC;// set quiescent Output voltage of 0.5V.
-float voltage;// internal variable for voltage  
-float current=0;
-float voltage_raw=0;
+const float VCC  = 5.0; // supply voltage is from 4.5 to 5.5V. Normally 5V.
+const float QOV =  0.5 * VCC; // set quiescent Output voltage of 0.5V.
+float voltage; // internal variable for voltage  
+float current = 0;
+float voltage_raw = 0;
 unsigned long timeCounter;
 
 
@@ -102,7 +102,7 @@ void calcula() {    //calcula a corrente para comparaçao do peso
 
         if(state == DESCIDA_SALVADA){
             lcd.setCursor(0,1);
-            lcd.print("use RESET");
+            lcd.print("tecle descer");
         }
         else{
             state = SOBRECARGA;
@@ -140,16 +140,19 @@ void salva_descida(){
                 motor = 0;
             }
         }
-        if(digitalRead(BOTAO_SALVA_DESCE) == HIGH ){
-            while (digitalRead(BOTAO_SALVA_DESCE) == HIGH);
-            lcd.clear();
-            lcd.setCursor(0, 0);
-            lcd.print("Descida Salva");
-            lcd.setCursor(0, 1); 
-            lcd.print("salvar subida");   
-            analogWrite(LPWM_Output, 0); 
-            analogWrite(RPWM_Output, 0); 
-            motor = 0;
+
+        if((millis() - timeCounter) >= 1000){
+            if(digitalRead(BOTAO_SALVA_DESCE) == HIGH ){
+                while (digitalRead(BOTAO_SALVA_DESCE) == HIGH);
+                lcd.clear();
+                lcd.setCursor(0, 0);
+                lcd.print("Descida Salva");
+                lcd.setCursor(0, 1); 
+                lcd.print("salvar subida");   
+                analogWrite(LPWM_Output, 0); 
+                analogWrite(RPWM_Output, 0); 
+                motor = 0;
+            }
         }
         wdt_reset();
     }
@@ -181,29 +184,30 @@ void salva_subida(){
             posicaoFinal++;
         }
 
-        if(digitalRead(BOTAO_SALVA_SOBE) == HIGH){
-            while (digitalRead(BOTAO_SALVA_SOBE) == HIGH);
-            lcd.clear();
-            lcd.setCursor(0, 0);
-            lcd.print("Subida Salva");
-            lcd.setCursor(0, 1); 
-            lcd.print("Elevador Pronto");  
-            analogWrite(LPWM_Output, 0); 
-            analogWrite(RPWM_Output, 0); 
-            motor = 0;
-            posicaoAtual = posicaoFinal;
-            EEPROM.write(0, posicaoAtual);
-            EEPROM.write(1, posicaoFinal);
+        if((millis() - timeCounter) >= 1000){
+            if(digitalRead(BOTAO_SALVA_SOBE) == HIGH){
+                while (digitalRead(BOTAO_SALVA_SOBE) == HIGH);
+                lcd.clear();
+                lcd.setCursor(0, 0);
+                lcd.print("Elevador Pronto");
+                lcd.setCursor(0, 1); 
+                lcd.print("Tecle descer");  
+                analogWrite(LPWM_Output, 0); 
+                analogWrite(RPWM_Output, 0); 
+                motor = 0;
+                posicaoAtual = posicaoFinal;
+                EEPROM.write(0, posicaoAtual);
+                EEPROM.write(1, posicaoFinal);
+            }
         }
         wdt_reset();
     }
-    delay(2000);
-    lcd.clear();
 }
     
 
 void func_descida(){
     lcd.setBacklight(HIGH); 
+    lcd.clear();
     lcd.setCursor(0, 1); 
     lcd.print("Varal descendo");
     analogWrite(LPWM_Output, 0); 
@@ -221,8 +225,11 @@ void func_descida(){
             posicaoAtual--;
 
             if(posicaoAtual == 0){
+                lcd.clear();
+                lcd.setCursor(0, 0); 
+                lcd.print("Varal embaixo");
                 lcd.setCursor(0, 1); 
-                lcd.print("Chegou embaixo"); 
+                lcd.print("Tecle subir"); 
                 analogWrite(LPWM_Output, 0); 
                 analogWrite(RPWM_Output, 0); 
                 motor = 0;
@@ -242,6 +249,7 @@ void func_subida(){
     posicaoFinal = EEPROM.read(1);
 
     lcd.setBacklight(HIGH); 
+    lcd.clear();
     lcd.setCursor(0, 1); 
     lcd.print("Varal Subindo");
 
@@ -255,8 +263,11 @@ void func_subida(){
             posicaoAtual++;
 
             if(posicaoAtual == posicaoFinal){
+                lcd.clear();
+                lcd.setCursor(0, 0); 
+                lcd.print("Varal em cima"); 
                 lcd.setCursor(0, 1); 
-                lcd.print("Chegou no topo"); 
+                lcd.print("Tecle descer");
                 analogWrite(LPWM_Output, 0); 
                 analogWrite(RPWM_Output, 0); 
                 motor = 0;
@@ -305,15 +316,17 @@ void loop() {
             analogWrite(LPWM_Output, 0); 
             analogWrite(RPWM_Output, 0); 
             lcd.setBacklight(HIGH); 
-            lcd.setCursor(0, 0); 
-            lcd.print("Elevadores Harah"); 
 
             if(state == ELEVADOR_EM_BAIXO){
+                lcd.setCursor(0, 0); 
+                lcd.print("Varal em baixo"); 
                 lcd.setCursor(0, 1); 
                 lcd.print("Tecle subir"); 
             }
 
             if(state == ELEVADOR_EM_CIMA){
+                lcd.setCursor(0, 0); 
+                lcd.print("Varal em cima"); 
                 lcd.setCursor(0, 1); 
                 lcd.print("Tecle descer"); 
             }
@@ -388,6 +401,7 @@ void loop() {
 
                 if(digitalRead(BOTAO_SALVA_DESCE) == HIGH){
                     while (digitalRead(BOTAO_SALVA_DESCE) == HIGH);
+                    timeCounter = millis();
                     salva_descida();
                     state = DESCIDA_SALVADA;
                     EEPROM.write(2,state);
@@ -402,6 +416,7 @@ void loop() {
                 
                 if(digitalRead(BOTAO_SALVA_SOBE) == HIGH){
                     while(digitalRead(BOTAO_SALVA_SOBE) == HIGH);
+                    timeCounter = millis();
                     salva_subida();
                     state = ELEVADOR_EM_CIMA;
                     EEPROM.write(2,state);
