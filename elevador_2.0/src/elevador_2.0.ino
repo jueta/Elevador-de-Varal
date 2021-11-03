@@ -35,6 +35,7 @@ const int BOTAO_SALVA_SOBE = 11;
 const int BOTAO_SALVA_DESCE = 12;
 const int encoder = 15;
 const int voltageSensor = A0;
+const int powerOffSensor = A3;
 
 
 //VARIAVEIS
@@ -80,14 +81,25 @@ void setup() {
 }
 
 
+void BrownOutDetect() {    //detecta a queda de tensao no pino A3 e salva tudo 
 
+    lcd.setCursor(10, 1); 
+    lcd.print(analogRead(powerOffSensor));
+
+    if(analogRead(powerOffSensor)  < 1023){
+        EEPROM.write(0, posicaoAtual); // Salva a posicao que parou
+        EEPROM.write(1, posicaoFinal);
+        EEPROM.write(2,state);
+    }
+}
 
 void calcula() {    //calcula a corrente para comparaçao do peso  
     current = 0.0;    
     for(int i =0;i<100;i++){//calculo corrente
-      voltage_raw =   (5.0 / 1023.0)* analogRead(voltageSensor);// Read the voltage from sensor
-      voltage =  voltage_raw - QOV + 0.012 ;// 0.000 is a value to make voltage zero when there is no current
-      current = current +(voltage / 0.100);                             
+        voltage_raw =   (5.0 / 1023.0)* analogRead(voltageSensor);// Read the voltage from sensor
+        voltage =  voltage_raw - QOV + 0.012 ;// 0.000 is a value to make voltage zero when there is no current
+        current = current +(voltage / 0.100);                             
+        //BrownOutDetect();
     }            
     current = current/100;    
 
@@ -124,6 +136,8 @@ void salva_descida(){
     int auxMaxCorda = 0;
 
     while(motor){ 
+
+        BrownOutDetect();
 
         if(digitalRead(encoder)==HIGH){   //  MAX CORDA
             while (digitalRead(encoder) == HIGH); 
@@ -177,11 +191,14 @@ void salva_subida(){
     posicaoFinal = EEPROM.read(1);
 
     while(motor){       
+        BrownOutDetect();
         calcula();     
        
         if(digitalRead(encoder)==HIGH){
             while (digitalRead(encoder) == HIGH); 
             posicaoFinal++;
+            lcd.setCursor(10, 1); 
+            lcd.print(posicaoAtual);
         }
 
         if((millis() - timeCounter) >= 1000){
@@ -196,12 +213,12 @@ void salva_subida(){
                 analogWrite(RPWM_Output, 0); 
                 motor = 0;
                 posicaoAtual = posicaoFinal;
-                EEPROM.write(0, posicaoAtual);
-                EEPROM.write(1, posicaoFinal);
             }
         }
         wdt_reset();
     }
+    EEPROM.write(0, posicaoAtual);
+    EEPROM.write(1, posicaoFinal);
 }
     
 
@@ -218,11 +235,15 @@ void func_descida(){
     motor = 1;   
 
     while(motor){     
+        BrownOutDetect();
         calcula(); 
         if(digitalRead(encoder)==HIGH){ 
             while (digitalRead(encoder) == HIGH);
             
             posicaoAtual--;
+
+            lcd.setCursor(10, 1); 
+            lcd.print(posicaoAtual);
 
             if(posicaoAtual == 0){
                 lcd.clear();
@@ -234,7 +255,6 @@ void func_descida(){
                 analogWrite(RPWM_Output, 0); 
                 motor = 0;
             }
-            EEPROM.write(0, posicaoAtual);
         }
         wdt_reset();
     }
@@ -256,11 +276,15 @@ void func_subida(){
     motor = 1;      
 
     while(motor){
+        BrownOutDetect();
         calcula();
         if(digitalRead(encoder)==HIGH){ 
             while (digitalRead(encoder) == HIGH);
             
             posicaoAtual++;
+
+            lcd.setCursor(10, 1); 
+            lcd.print(posicaoAtual);
 
             if(posicaoAtual == posicaoFinal){
                 lcd.clear();
@@ -272,7 +296,6 @@ void func_subida(){
                 analogWrite(RPWM_Output, 0); 
                 motor = 0;
             }
-            EEPROM.write(0, posicaoAtual);
         } 
         wdt_reset();
     }
@@ -281,6 +304,7 @@ void func_subida(){
 
 
 void func_reset(){
+    BrownOutDetect();
     lcd.setBacklight(HIGH); 
     lcd.clear(); 
     lcd.setCursor(0, 0); 
@@ -302,6 +326,8 @@ void func_reset(){
 
 
 void loop() {    
+
+    BrownOutDetect(); // Verifica se o elevador foi desligado
 
     if (onOff == 0) {       //ELEVADOR DESLIGADO
         analogWrite(LPWM_Output, 0); 
@@ -378,6 +404,7 @@ void loop() {
                 if(digitalRead(BOTAO_RESET) == HIGH){
                     timeCounter = millis();
                     while(digitalRead(BOTAO_RESET) == HIGH){  // RESET estado de fabrica
+                        BrownOutDetect();
                         if((millis() - timeCounter) >= 5000){
                         lcd.setBacklight(HIGH); 
                         lcd.clear(); 
