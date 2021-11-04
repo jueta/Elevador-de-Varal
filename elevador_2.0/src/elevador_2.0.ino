@@ -13,6 +13,7 @@
 #include <LiquidCrystal.h> 
 #include <EEPROM.h>
 #include <avr/wdt.h>
+#include <MsTimer2.h>
 
 LiquidCrystal_I2C lcd(0x27, 2, 1, 0, 4, 5, 6, 7, 3, POSITIVE); 
 
@@ -35,7 +36,7 @@ const int BOTAO_SALVA_SOBE = 11;
 const int BOTAO_SALVA_DESCE = 12;
 const int encoder = 15;
 const int voltageSensor = A0;
-const int powerOffSensor = A3;
+const int powerOffSensor = A2;
 
 
 //VARIAVEIS
@@ -78,18 +79,21 @@ void setup() {
     pinMode(voltageSensor,INPUT); 
     pinMode(encoder,INPUT);
     wdt_enable(WDTO_8S);
+
+    MsTimer2::set(1, BrownOutDetect); // 10ms period
+    MsTimer2::start();
 }
 
 
 void BrownOutDetect() {    //detecta a queda de tensao no pino A3 e salva tudo 
 
-    lcd.setCursor(10, 1); 
-    lcd.print(analogRead(powerOffSensor));
 
     if(analogRead(powerOffSensor)  < 1023){
         EEPROM.write(0, posicaoAtual); // Salva a posicao que parou
         EEPROM.write(1, posicaoFinal);
         EEPROM.write(2,state);
+        lcd.setCursor(10, 1); 
+        lcd.print(analogRead("Saved"));
     }
 }
 
@@ -137,7 +141,7 @@ void salva_descida(){
 
     while(motor){ 
 
-        BrownOutDetect();
+        //BrownOutDetect();
 
         if(digitalRead(encoder)==HIGH){   //  MAX CORDA
             while (digitalRead(encoder) == HIGH); 
@@ -191,8 +195,8 @@ void salva_subida(){
     posicaoFinal = EEPROM.read(1);
 
     while(motor){       
-        BrownOutDetect();
-        calcula();     
+        //BrownOutDetect();
+        //calcula();     
        
         if(digitalRead(encoder)==HIGH){
             while (digitalRead(encoder) == HIGH); 
@@ -235,8 +239,8 @@ void func_descida(){
     motor = 1;   
 
     while(motor){     
-        BrownOutDetect();
-        calcula(); 
+        //BrownOutDetect();
+        //calcula(); 
         if(digitalRead(encoder)==HIGH){ 
             while (digitalRead(encoder) == HIGH);
             
@@ -276,8 +280,8 @@ void func_subida(){
     motor = 1;      
 
     while(motor){
-        BrownOutDetect();
-        calcula();
+        //BrownOutDetect();
+        //calcula();
         if(digitalRead(encoder)==HIGH){ 
             while (digitalRead(encoder) == HIGH);
             
@@ -304,7 +308,7 @@ void func_subida(){
 
 
 void func_reset(){
-    BrownOutDetect();
+    //BrownOutDetect();
     lcd.setBacklight(HIGH); 
     lcd.clear(); 
     lcd.setCursor(0, 0); 
@@ -327,7 +331,7 @@ void func_reset(){
 
 void loop() {    
 
-    BrownOutDetect(); // Verifica se o elevador foi desligado
+    //BrownOutDetect(); // Verifica se o elevador foi desligado
 
     if (onOff == 0) {       //ELEVADOR DESLIGADO
         analogWrite(LPWM_Output, 0); 
@@ -404,7 +408,7 @@ void loop() {
                 if(digitalRead(BOTAO_RESET) == HIGH){
                     timeCounter = millis();
                     while(digitalRead(BOTAO_RESET) == HIGH){  // RESET estado de fabrica
-                        BrownOutDetect();
+                        //BrownOutDetect();
                         if((millis() - timeCounter) >= 5000){
                         lcd.setBacklight(HIGH); 
                         lcd.clear(); 
