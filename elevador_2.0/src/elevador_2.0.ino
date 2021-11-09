@@ -80,15 +80,21 @@ void setup() {
     pinMode(encoder,INPUT);
     wdt_enable(WDTO_8S);
 
-    MsTimer2::set(1, BrownOutDetect); // 10ms period
+    MsTimer2::set(10, BrownOutDetect); // 1ms period
     MsTimer2::start();
 }
 
 
 void BrownOutDetect() {    //detecta a queda de tensao no pino A3 e salva tudo 
+    if(analogRead(powerOffSensor) < 920) {
+        pinMode(powerOffSensor, OUTPUT);
+        digitalWrite(powerOffSensor, HIGH);
+        return;
+    }
 
+    pinMode(powerOffSensor, INPUT);
 
-    if(analogRead(powerOffSensor)  < 1023){
+    if(analogRead(powerOffSensor)  > 1000){
         EEPROM.write(0, posicaoAtual); // Salva a posicao que parou
         EEPROM.write(1, posicaoFinal);
         EEPROM.write(2,state);
