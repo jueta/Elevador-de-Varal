@@ -57,7 +57,6 @@ volatile char onOff;
 
 
 
-
 void setup() { 
     Serial.begin(9600); 
     lcd.begin(16, 2);     
@@ -207,8 +206,8 @@ void salva_subida(){
         if(digitalRead(encoder)==HIGH){
             while (digitalRead(encoder) == HIGH); 
             posicaoFinal++;
-            lcd.setCursor(10, 1); 
-            lcd.print(posicaoAtual);
+            // lcd.setCursor(10, 1); 
+            // lcd.print(posicaoAtual);
         }
 
         if((millis() - timeCounter) >= 1000){
@@ -252,8 +251,8 @@ void func_descida(){
             
             posicaoAtual--;
 
-            lcd.setCursor(10, 1); 
-            lcd.print(posicaoAtual);
+            // lcd.setCursor(10, 1); 
+            // lcd.print(posicaoAtual);
 
             if(posicaoAtual == 0){
                 lcd.clear();
@@ -293,8 +292,8 @@ void func_subida(){
             
             posicaoAtual++;
 
-            lcd.setCursor(10, 1); 
-            lcd.print(posicaoAtual);
+            // lcd.setCursor(10, 1); 
+            // lcd.print(posicaoAtual);
 
             if(posicaoAtual == posicaoFinal){
                 lcd.clear();
