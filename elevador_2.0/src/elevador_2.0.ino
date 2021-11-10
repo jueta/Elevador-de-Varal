@@ -31,12 +31,12 @@ LiquidCrystal_I2C lcd(0x27, 2, 1, 0, 4, 5, 6, 7, 3, POSITIVE);
 const int RPWM_Output = 5; // Arduino PWM output pin 5; connect to IBT-2 pin 1 (RPWM) 
 const int LPWM_Output = 6; // Arduino PWM output pin 6; connect to IBT-2 pin 2 (LPWM) 
 const int BOTAO_SOBE = 3; 
-const int BOTAO_LIGA = 2; 
+const int BOTAO_LIGA = 0; 
 const int BOTAO_DESCE = 4; 
 const int BOTAO_RESET = 10; 
 const int BOTAO_SALVA_SOBE = 11;
 const int BOTAO_SALVA_DESCE = 12;
-const int encoder = 15;  // Mudar para pino 2 ou 3
+const int encoder = 2;  // Mudar para pino 2 ou 3
 const int voltageSensor = A0;
 const int powerOffSensor = A2;
 
