@@ -129,9 +129,13 @@ void holeCounter() {    // Contador de furos do Encoder   **ISR**
     if(Elevador.salvandoFlag == true){ // Is saving
 
         if (Elevador.state == DESCENDO) {
-            
-            Elevador.posicaoAtual++;
 
+        }
+
+        else if (Elevador.state == SUBINDO) {
+
+            Elevador.posicaoAtual++;
+            
             //Elevador.auxMaxCorda++; 
 
             // if(Elevador.auxMaxCorda == MAX_CORDA){
@@ -154,20 +158,14 @@ void holeCounter() {    // Contador de furos do Encoder   **ISR**
 
         }
 
-        else if (Elevador.state == SUBINDO) {
-
-            Elevador.posicaoAtual--;
-
-        }
-
 
     } else {  //Normal Function
 
         if (Elevador.state == DESCENDO) {
 
-            Elevador.posicaoAtual++;
+            Elevador.posicaoAtual--;
 
-            if(Elevador.posicaoAtual == Elevador.posicaoFinal){
+            if(Elevador.posicaoAtual == 0){
                 analogWrite(LPWM_Output, 0); 
                 analogWrite(RPWM_Output, 0); 
                 Elevador.motor = 0;
@@ -186,9 +184,9 @@ void holeCounter() {    // Contador de furos do Encoder   **ISR**
 
         else if (Elevador.state == SUBINDO) {
 
-            Elevador.posicaoAtual--;
+            Elevador.posicaoAtual++;
 
-            if(Elevador.posicaoAtual == 0){
+            if(Elevador.posicaoAtual == Elevador.posicaoFinal){
                 analogWrite(LPWM_Output, 0); 
                 analogWrite(RPWM_Output, 0); 
                 Elevador.motor = 0;
@@ -241,26 +239,30 @@ void calcula() {    //calcula a corrente para comparaçao do peso
 
 void salva_descida(){
 
-    if(Elevador.salvandoFlag == true){
+    if(Elevador.salvandoFlag == true){  // SALVA VALOR
 
         analogWrite(LPWM_Output, 0); 
         analogWrite(RPWM_Output, 0); 
         Elevador.motor = 0;
 
         lcd.clear();
+
+        lcd.setCursor(10,0);
+        lcd.print(Elevador.posicaoAtual);
         lcd.setCursor(0, 0);
         lcd.print("Descida Salva");
         lcd.setCursor(0, 1); 
         lcd.print("salvar subida");  
 
-        Elevador.posicaoFinal = Elevador.posicaoAtual;
+        Elevador.posicaoFinal = 0;
+        Elevador.posicaoFinal = 0;
         Elevador.state = DESCIDA_SALVADA;
         EEPROM.write(0, Elevador.posicaoAtual);
         EEPROM.write(1, Elevador.posicaoFinal);
         EEPROM.write(2, Elevador.state);
-        //Elevador.salvandoFlag = false;
+        Elevador.salvandoFlag = false;
 
-    } else {
+    } else {  // inicia descida
 
         lcd.setBacklight(HIGH); 
         lcd.clear(); 
@@ -269,6 +271,11 @@ void salva_descida(){
 
         Elevador.salvandoFlag = true;
         Elevador.posicaoAtual = 0;
+        Elevador.posicaoFinal = 0;
+        Elevador.state = DESCENDO;
+        EEPROM.write(0,Elevador.posicaoAtual);
+        EEPROM.write(1,Elevador.posicaoFinal);
+        EEPROM.write(2,Elevador.state);
 
         Elevador.motor = 1; 
         analogWrite(LPWM_Output, 0); 
@@ -280,39 +287,42 @@ void salva_descida(){
 
 void salva_subida(){
     
-    if(Elevador.salvandoFlag == true){
+    if(Elevador.salvandoFlag == true){  // SALVAR
 
         analogWrite(LPWM_Output, 0); 
         analogWrite(RPWM_Output, 0); 
         Elevador.motor = 0;
 
         lcd.clear();
+        
+        lcd.setCursor(10,0);
+        lcd.print(Elevador.posicaoAtual);
         lcd.setCursor(0, 0);
         lcd.print("Elevador Pronto");
         lcd.setCursor(0, 1); 
         lcd.print("Tecle descer");  
 
-        //Elevador.posicaoAtual = 0;
+        Elevador.posicaoFinal = Elevador.posicaoAtual;
         Elevador.state = ELEVADOR_EM_CIMA;
         EEPROM.write(0, Elevador.posicaoAtual);
         EEPROM.write(1, Elevador.posicaoFinal);
         EEPROM.write(2, Elevador.state);
         Elevador.salvandoFlag = false;
 
-    } else {
+    } else {  // Iniciar subida
 
         lcd.setBacklight(HIGH);
         lcd.clear();
         lcd.setCursor(0, 0);
         lcd.print("Salvando Subida");
 
-        Elevador.posicaoAtual = EEPROM.read(0);
-        Elevador.posicaoFinal = EEPROM.read(1);
         Elevador.salvandoFlag = true;
 
         analogWrite(LPWM_Output, 170);
         analogWrite(RPWM_Output, 0);
         Elevador.motor = 1; 
+
+        delay(1000);
     }
 
 }
@@ -321,8 +331,8 @@ void salva_subida(){
 void func_descida(){
 
     Elevador.state = DESCENDO;
-    Elevador.posicaoAtual = EEPROM.read(0);
-    Elevador.posicaoFinal = EEPROM.read(1);
+    // Elevador.posicaoAtual = EEPROM.read(0);
+    // Elevador.posicaoFinal = EEPROM.read(1);
 
     lcd.setBacklight(HIGH); 
     lcd.clear();
@@ -341,8 +351,8 @@ void func_descida(){
 void func_subida(){
 
     Elevador.state = SUBINDO; 
-    Elevador.posicaoAtual = EEPROM.read(0);
-    Elevador.posicaoFinal = EEPROM.read(1);
+    // Elevador.posicaoAtual = EEPROM.read(0);
+    // Elevador.posicaoFinal = EEPROM.read(1);
 
     lcd.setBacklight(HIGH); 
     lcd.clear();
@@ -470,8 +480,6 @@ void loop() {
 
                 if(digitalRead(BOTAO_SALVA_DESCE) == HIGH){
                     while (digitalRead(BOTAO_SALVA_DESCE) == HIGH);
-                    Elevador.state = DESCENDO;
-                    EEPROM.write(2,Elevador.state);
                     Elevador.salvandoFlag = false;
                     salva_descida();
                 }     
@@ -563,6 +571,13 @@ void loop() {
 
             
             case DESCENDO: {
+
+                
+                // //debug
+                // lcd.setCursor(1, 1); 
+                // lcd.print(aux);
+                // aux++;
+                // delay(200);
                 
                 // if(digitalRead(BOTAO_DESCE) == HIGH){
                 //     while(digitalRead(BOTAO_DESCE) == HIGH);
@@ -599,12 +614,6 @@ void loop() {
                     while(digitalRead(BOTAO_SOBE) == HIGH);
                     func_subida();
                 }
-
-                //debug
-                lcd.setCursor(1, 1); 
-                lcd.print(aux);
-                aux++;
-                delay(200);
                 
                 if(digitalRead(BOTAO_RESET) == HIGH){
                     while(digitalRead(BOTAO_RESET) == HIGH);
