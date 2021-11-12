@@ -42,7 +42,6 @@ const int powerOffSensor = A2;
 
 
 //VARIAVEIS
-
 const float VCC  = 5.0; // supply voltage is from 4.5 to 5.5V. Normally 5V.
 const float QOV =  0.5 * VCC; // set quiescent Output voltage of 0.5V.
 float voltage; // internal variable for voltage  
@@ -50,6 +49,7 @@ float current = 0;
 float voltage_raw = 0;
 unsigned long timeCounter;
 int aux = 0;
+bool flagFim = false;
 
 
 //Variaveis de estado
@@ -102,6 +102,44 @@ void setup() {
     MsTimer2::set(15, BrownOutDetect); // 1ms period
     MsTimer2::start();
 }
+
+
+void fimDescida(){
+
+        flagFim = false;
+
+        analogWrite(LPWM_Output, 0); 
+        analogWrite(RPWM_Output, 0); 
+        Elevador.motor = 0;
+        
+        lcd.clear();
+        lcd.setCursor(0, 0); 
+        lcd.print("Varal embaixo");
+        lcd.setCursor(0, 1); 
+        lcd.print("Tecle subir"); 
+
+        Elevador.state = ELEVADOR_EM_BAIXO;
+
+}
+
+void fimSubida(){
+
+        flagFim = false;
+
+        analogWrite(LPWM_Output, 0); 
+        analogWrite(RPWM_Output, 0); 
+        Elevador.motor = 0;
+        
+        lcd.clear();
+        lcd.setCursor(0, 0); 
+        lcd.print("Varal em cima"); 
+        lcd.setCursor(0, 1); 
+        lcd.print("Tecle descer");
+
+        Elevador.state = ELEVADOR_EM_CIMA;
+
+}
+
 
 
 void BrownOutDetect() {    //detecta a queda de tensao no pino A3 e salva tudo
@@ -170,19 +208,8 @@ void holeCounter() {    // Contador de furos do Encoder   **ISR**
             // lcd.print(aux);
             // aux++;
 
-            if(Elevador.posicaoAtual == 0){
-                analogWrite(LPWM_Output, 0); 
-                analogWrite(RPWM_Output, 0); 
-                Elevador.motor = 0;
-                
-                lcd.clear();
-                lcd.setCursor(0, 0); 
-                lcd.print("Varal embaixo");
-                lcd.setCursor(0, 1); 
-                lcd.print("Tecle subir"); 
-
-                Elevador.state = ELEVADOR_EM_BAIXO;
-
+            if(Elevador.posicaoAtual <= 0){
+                flagFim = true;
             }
         }
 
@@ -195,19 +222,8 @@ void holeCounter() {    // Contador de furos do Encoder   **ISR**
             // lcd.print(aux);
             // aux++;
 
-            if(Elevador.posicaoAtual == Elevador.posicaoFinal){
-                analogWrite(LPWM_Output, 0); 
-                analogWrite(RPWM_Output, 0); 
-                Elevador.motor = 0;
-                
-                lcd.clear();
-                lcd.setCursor(0, 0); 
-                lcd.print("Varal em cima"); 
-                lcd.setCursor(0, 1); 
-                lcd.print("Tecle descer");
- 
-                Elevador.state = ELEVADOR_EM_CIMA;
-
+            if(Elevador.posicaoAtual >= Elevador.posicaoFinal){
+                flagFim = true;
             }
         }
     }   
@@ -288,6 +304,8 @@ void salva_descida(){
         Elevador.motor = 1; 
         analogWrite(LPWM_Output, 0); 
         analogWrite(RPWM_Output, 170);
+
+        delay(1000);
     }
 
 }
@@ -346,8 +364,6 @@ void func_descida(){
     lcd.clear();
     lcd.setCursor(0, 1); 
     lcd.print("Varal descendo");
-
-
 
     analogWrite(LPWM_Output, 0); 
     analogWrite(RPWM_Output, 170);
@@ -525,6 +541,10 @@ void loop() {
 
 
             case SUBINDO: {
+
+                if(flagFim == true){
+                    fimSubida();
+                }
                 
                 // if(digitalRead(BOTAO_SOBE) == HIGH){
                 //     while(digitalRead(BOTAO_SOBE) == HIGH);
@@ -580,8 +600,10 @@ void loop() {
             
             case DESCENDO: {
 
+                if(flagFim == true){
+                    fimDescida();
+                }
 
-                
                 // if(digitalRead(BOTAO_DESCE) == HIGH){
                 //     while(digitalRead(BOTAO_DESCE) == HIGH);
                 //         Elevador.onOff = 0; // cancelamento de emergencia
@@ -612,6 +634,12 @@ void loop() {
 
 
             case ELEVADOR_EM_BAIXO: {
+
+                
+                // // //debug
+                // lcd.setCursor(1, 1); 
+                // lcd.print(aux);
+                // aux++;
                 
                 if(digitalRead(BOTAO_SOBE) == HIGH){
                     while(digitalRead(BOTAO_SOBE) == HIGH);
