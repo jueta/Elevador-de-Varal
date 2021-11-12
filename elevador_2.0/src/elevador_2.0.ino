@@ -165,6 +165,11 @@ void holeCounter() {    // Contador de furos do Encoder   **ISR**
 
             Elevador.posicaoAtual--;
 
+            // //debug
+            // lcd.setCursor(1, 1); 
+            // lcd.print(aux);
+            // aux++;
+
             if(Elevador.posicaoAtual == 0){
                 analogWrite(LPWM_Output, 0); 
                 analogWrite(RPWM_Output, 0); 
@@ -177,14 +182,18 @@ void holeCounter() {    // Contador de furos do Encoder   **ISR**
                 lcd.print("Tecle subir"); 
 
                 Elevador.state = ELEVADOR_EM_BAIXO;
-                EEPROM.write(0, Elevador.posicaoAtual);
-                EEPROM.write(2,Elevador.state);
+
             }
         }
 
         else if (Elevador.state == SUBINDO) {
 
             Elevador.posicaoAtual++;
+
+            // //debug
+            // lcd.setCursor(1, 1); 
+            // lcd.print(aux);
+            // aux++;
 
             if(Elevador.posicaoAtual == Elevador.posicaoFinal){
                 analogWrite(LPWM_Output, 0); 
@@ -198,8 +207,7 @@ void holeCounter() {    // Contador de furos do Encoder   **ISR**
                 lcd.print("Tecle descer");
  
                 Elevador.state = ELEVADOR_EM_CIMA;
-                EEPROM.write(0, Elevador.posicaoAtual);
-                EEPROM.write(2,Elevador.state);
+
             }
         }
     }   
@@ -247,12 +255,12 @@ void salva_descida(){
 
         lcd.clear();
 
-        lcd.setCursor(10,0);
-        lcd.print(Elevador.posicaoAtual);
         lcd.setCursor(0, 0);
         lcd.print("Descida Salva");
         lcd.setCursor(0, 1); 
         lcd.print("salvar subida");  
+        lcd.setCursor(10,0);
+        lcd.print(Elevador.posicaoAtual);
 
         Elevador.posicaoFinal = 0;
         Elevador.posicaoFinal = 0;
@@ -295,12 +303,12 @@ void salva_subida(){
 
         lcd.clear();
         
-        lcd.setCursor(10,0);
-        lcd.print(Elevador.posicaoAtual);
         lcd.setCursor(0, 0);
         lcd.print("Elevador Pronto");
         lcd.setCursor(0, 1); 
         lcd.print("Tecle descer");  
+        lcd.setCursor(10,0);
+        lcd.print(Elevador.posicaoAtual);
 
         Elevador.posicaoFinal = Elevador.posicaoAtual;
         Elevador.state = ELEVADOR_EM_CIMA;
@@ -572,12 +580,7 @@ void loop() {
             
             case DESCENDO: {
 
-                
-                // //debug
-                // lcd.setCursor(1, 1); 
-                // lcd.print(aux);
-                // aux++;
-                // delay(200);
+
                 
                 // if(digitalRead(BOTAO_DESCE) == HIGH){
                 //     while(digitalRead(BOTAO_DESCE) == HIGH);
