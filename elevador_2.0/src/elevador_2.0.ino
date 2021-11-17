@@ -99,7 +99,7 @@ void setup() {
 
     attachInterrupt(digitalPinToInterrupt(encoder), holeCounter, RISING);
 
-    MsTimer2::set(15, BrownOutDetect); // 1ms period
+    MsTimer2::set(10, BrownOutDetect); // 1ms period
     MsTimer2::start();
 }
 
@@ -154,6 +154,7 @@ void BrownOutDetect() {    //detecta a queda de tensao no pino A3 e salva tudo
     pinMode(powerOffSensor, INPUT);
 
     if(analogRead(powerOffSensor)  > 1000){
+        Elevador.state = ELEVADOR_EM_CIMA;
         EEPROM.write(0, Elevador.posicaoAtual); // Salva a posicao que parou
         EEPROM.write(1, Elevador.posicaoFinal);
         EEPROM.write(2,Elevador.state);
@@ -174,25 +175,25 @@ void holeCounter() {    // Contador de furos do Encoder   **ISR**
 
             Elevador.posicaoAtual++;
             
-            //Elevador.auxMaxCorda++; 
+            Elevador.auxMaxCorda++; 
 
-            // if(Elevador.auxMaxCorda == MAX_CORDA){
-            //     lcd.clear();
-            //     lcd.setCursor(0, 0);
-            //     lcd.print("Chegou ao Maximo");
-            //     lcd.setCursor(0, 1); 
-            //     lcd.print("Descida salva");  
+            if(Elevador.auxMaxCorda == MAX_CORDA){
+                lcd.clear();
+                lcd.setCursor(0, 0);
+                lcd.print("Chegou ao Maximo");
+                lcd.setCursor(0, 1); 
+                lcd.print("Descida salva");  
 
-            //     analogWrite(LPWM_Output, 0); 
-            //     analogWrite(RPWM_Output, 0); 
-            //     Elevador.motor = 0;
+                analogWrite(LPWM_Output, 0); 
+                analogWrite(RPWM_Output, 0); 
+                Elevador.motor = 0;
 
-            //     Elevador.state = DESCIDA_SALVADA;
-            //     Elevador.posicaoFinal = Elevador.posicaoAtual;
-            //     EEPROM.write(0, Elevador.posicaoAtual); // Salva a posicao que parou
-            //     EEPROM.write(1, Elevador.posicaoFinal);
-            //     EEPROM.write(2,Elevador.state);
-            // }
+                Elevador.state = DESCIDA_SALVADA;
+                Elevador.posicaoFinal = Elevador.posicaoAtual;
+                EEPROM.write(0, Elevador.posicaoAtual); // Salva a posicao que parou
+                EEPROM.write(1, Elevador.posicaoFinal);
+                EEPROM.write(2,Elevador.state);
+            }
 
         }
 
