@@ -169,31 +169,30 @@ void holeCounter() {    // Contador de furos do Encoder   **ISR**
 
         if (Elevador.state == DESCENDO) {
 
+            // Elevador.auxMaxCorda++; 
+
+            // if(Elevador.auxMaxCorda == MAX_CORDA){
+            //     analogWrite(LPWM_Output, 0); 
+            //     analogWrite(RPWM_Output, 0); 
+            //     Elevador.motor = 0;
+
+            //     lcd.clear();
+            //     lcd.setCursor(0, 0);
+            //     lcd.print("Chegou ao Maximo");
+            //     lcd.setCursor(0, 1); 
+            //     lcd.print("Descida salva");  
+
+            //     Elevador.posicaoFinal = Elevador.posicaoAtual;
+            //     EEPROM.write(0, Elevador.posicaoAtual); // Salva a posicao que parou
+            //     EEPROM.write(1, Elevador.posicaoFinal);
+            //     EEPROM.write(2,Elevador.state);
+            // }
+
         }
 
         else if (Elevador.state == SUBINDO) {
 
             Elevador.posicaoAtual++;
-            
-            Elevador.auxMaxCorda++; 
-
-            if(Elevador.auxMaxCorda == MAX_CORDA){
-                lcd.clear();
-                lcd.setCursor(0, 0);
-                lcd.print("Chegou ao Maximo");
-                lcd.setCursor(0, 1); 
-                lcd.print("Descida salva");  
-
-                analogWrite(LPWM_Output, 0); 
-                analogWrite(RPWM_Output, 0); 
-                Elevador.motor = 0;
-
-                Elevador.state = DESCIDA_SALVADA;
-                Elevador.posicaoFinal = Elevador.posicaoAtual;
-                EEPROM.write(0, Elevador.posicaoAtual); // Salva a posicao que parou
-                EEPROM.write(1, Elevador.posicaoFinal);
-                EEPROM.write(2,Elevador.state);
-            }
 
         }
 
@@ -240,6 +239,10 @@ void calcula() {    //calcula a corrente para comparaçao do peso
         current = current +(voltage / 0.100);                             
     }            
     current = current/100;    
+
+    // //debug
+    lcd.setCursor(7,0);
+    lcd.print(current);
 
     if(current > 14){   //MUDAR PARA 14 depois
         lcd.clear();
