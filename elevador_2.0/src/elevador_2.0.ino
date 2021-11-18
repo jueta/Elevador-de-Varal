@@ -40,8 +40,8 @@ const int encoder = 2;  // Mudar para pino 2 ou 3
 const int voltageSensor = A0;
 const int powerOffSensor = A2;
 
-
 //VARIAVEIS
+static volatile unsigned long debounce = 0;
 const float VCC  = 5.0; // supply voltage is from 4.5 to 5.5V. Normally 5V.
 const float QOV =  0.5 * VCC; // set quiescent Output voltage of 0.5V.
 float voltage; // internal variable for voltage  
@@ -112,9 +112,9 @@ void fimDescida(){
         analogWrite(RPWM_Output, 0); 
         Elevador.motor = 0;
         
-        lcd.clear();
+        lcd.clear(); 
         lcd.setCursor(0, 0); 
-        lcd.print("Varal embaixo");
+        lcd.print("Varal embaixo"); 
         lcd.setCursor(0, 1); 
         lcd.print("Tecle subir"); 
 
@@ -139,28 +139,34 @@ void fimSubida(){
         Elevador.state = ELEVADOR_EM_CIMA;
 
 }
-
+ 
 
 
 void BrownOutDetect() {    //detecta a queda de tensao no pino A3 e salva tudo
 
-    if(analogRead(powerOffSensor) < 920) {
+    if(  digitalRead (encoder) && (micros() - debounce > 500) && digitalRead (encoder) ) { 
 
-        pinMode(powerOffSensor, OUTPUT);
-        digitalWrite(powerOffSensor, HIGH);
-        return;
-    }
+        debounce = micros(); 
 
-    pinMode(powerOffSensor, INPUT);
+        if(analogRead(powerOffSensor) < 920) {
 
-    if(analogRead(powerOffSensor)  > 1000){
-        Elevador.state = ELEVADOR_EM_CIMA;
-        EEPROM.write(0, Elevador.posicaoAtual); // Salva a posicao que parou
-        EEPROM.write(1, Elevador.posicaoFinal);
-        EEPROM.write(2,Elevador.state);
-        lcd.setCursor(10, 1); 
-        lcd.print(analogRead("Saved"));
-    }
+            pinMode(powerOffSensor, OUTPUT);
+            digitalWrite(powerOffSensor, HIGH);
+            return;
+        }
+
+        pinMode(powerOffSensor, INPUT);
+
+        if(analogRead(powerOffSensor)  > 1000){
+            Elevador.state = ELEVADOR_EM_CIMA;
+            EEPROM.write(0, Elevador.posicaoAtual); // Salva a posicao que parou
+            EEPROM.write(1, Elevador.posicaoFinal);
+            EEPROM.write(2,Elevador.state);
+            lcd.setCursor(10, 1); 
+            lcd.print(analogRead("Saved"));
+        }
+
+    } 
 }
 
 void holeCounter() {    // Contador de furos do Encoder   **ISR**
