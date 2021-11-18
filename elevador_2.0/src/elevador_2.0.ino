@@ -164,6 +164,7 @@ void BrownOutDetect() {    //detecta a queda de tensao no pino A3 e salva tudo
 }
 
 void holeCounter() {    // Contador de furos do Encoder   **ISR**
+
     
     if(Elevador.salvandoFlag == true){ // Is saving
 
@@ -240,9 +241,10 @@ void calcula() {    //calcula a corrente para comparaçao do peso
     }            
     current = current/100;    
 
-    // //debug
-    lcd.setCursor(7,0);
-    lcd.print(current);
+    // // //debug
+    // lcd.setCursor(7,0);
+    // lcd.print(current);
+    // delay(100);
 
     if(current > 14){   //MUDAR PARA 14 depois
         lcd.clear();
@@ -546,6 +548,8 @@ void loop() {
 
             case SUBINDO: {
 
+                // calcula();
+
                 if(flagFim == true){
                     fimSubida();
                 }
@@ -603,6 +607,8 @@ void loop() {
 
             
             case DESCENDO: {
+
+                // calcula();
 
                 if(flagFim == true){
                     fimDescida();
