@@ -60,8 +60,8 @@ typedef struct {
     volatile char onOff;
     bool salvandoFlag = 0; 
 
-    volatile unsigned long posicaoAtual = 0;
-    volatile unsigned long posicaoFinal = 0;
+    volatile int posicaoAtual = 0;
+    volatile int posicaoFinal = 0;
     volatile char state;
 
 } Varal;
@@ -97,7 +97,7 @@ void setup() {
 
     wdt_enable(WDTO_8S);
 
-    attachInterrupt(digitalPinToInterrupt(encoder), holeCounter, RISING);
+    attachInterrupt(digitalPinToInterrupt(encoder), holeCounter, FALLING);
 
     MsTimer2::set(10, BrownOutDetect); // 1ms period
     MsTimer2::start();
@@ -144,10 +144,6 @@ void fimSubida(){
 
 void BrownOutDetect() {    //detecta a queda de tensao no pino A3 e salva tudo
 
-    if(  digitalRead (encoder) && (micros() - debounce > 500) && digitalRead (encoder) ) { 
-
-        debounce = micros(); 
-
         if(analogRead(powerOffSensor) < 920) {
 
             pinMode(powerOffSensor, OUTPUT);
@@ -166,75 +162,79 @@ void BrownOutDetect() {    //detecta a queda de tensao no pino A3 e salva tudo
             lcd.print(analogRead("Saved"));
         }
 
-    } 
-}
+} 
 
 void holeCounter() {    // Contador de furos do Encoder   **ISR**
 
-    
-    if(Elevador.salvandoFlag == true){ // Is saving
+    if((millis() - debounce) > 20) { 
 
-        if (Elevador.state == DESCENDO) {
+        //while(digitalRead (encoder));
 
-            // Elevador.auxMaxCorda++; 
+        debounce = millis(); 
 
-            // if(Elevador.auxMaxCorda == MAX_CORDA){
-            //     analogWrite(LPWM_Output, 0); 
-            //     analogWrite(RPWM_Output, 0); 
-            //     Elevador.motor = 0;
+        if(Elevador.salvandoFlag == true){ // Is saving
 
-            //     lcd.clear();
-            //     lcd.setCursor(0, 0);
-            //     lcd.print("Chegou ao Maximo");
-            //     lcd.setCursor(0, 1); 
-            //     lcd.print("Descida salva");  
+            if (Elevador.state == DESCENDO) {
 
-            //     Elevador.posicaoFinal = Elevador.posicaoAtual;
-            //     EEPROM.write(0, Elevador.posicaoAtual); // Salva a posicao que parou
-            //     EEPROM.write(1, Elevador.posicaoFinal);
-            //     EEPROM.write(2,Elevador.state);
-            // }
+                // Elevador.auxMaxCorda++; 
 
-        }
+                // if(Elevador.auxMaxCorda == MAX_CORDA){
+                //     analogWrite(LPWM_Output, 0); 
+                //     analogWrite(RPWM_Output, 0); 
+                //     Elevador.motor = 0;
 
-        else if (Elevador.state == SUBINDO) {
+                //     lcd.clear();
+                //     lcd.setCursor(0, 0);
+                //     lcd.print("Chegou ao Maximo");
+                //     lcd.setCursor(0, 1); 
+                //     lcd.print("Descida salva");  
 
-            Elevador.posicaoAtual++;
+                //     Elevador.posicaoFinal = Elevador.posicaoAtual;
+                //     EEPROM.write(0, Elevador.posicaoAtual); // Salva a posicao que parou
+                //     EEPROM.write(1, Elevador.posicaoFinal);
+                //     EEPROM.write(2,Elevador.state);
+                // }
 
-        }
-
-
-    } else {  //Normal Function
-
-        if (Elevador.state == DESCENDO) {
-
-            Elevador.posicaoAtual--;
-
-            // //debug
-            // lcd.setCursor(1, 1); 
-            // lcd.print(aux);
-            // aux++;
-
-            if(Elevador.posicaoAtual <= 0){
-                flagFim = true;
             }
-        }
 
-        else if (Elevador.state == SUBINDO) {
+            else if (Elevador.state == SUBINDO) {
 
-            Elevador.posicaoAtual++;
+                Elevador.posicaoAtual++;
 
-            // //debug
-            // lcd.setCursor(1, 1); 
-            // lcd.print(aux);
-            // aux++;
-
-            if(Elevador.posicaoAtual >= Elevador.posicaoFinal){
-                flagFim = true;
             }
-        }
-    }   
 
+
+        } else {  //Normal Function
+
+            if (Elevador.state == DESCENDO || Elevador.state == ELEVADOR_EM_BAIXO) {
+
+                Elevador.posicaoAtual--;
+
+                // //debug
+                // lcd.setCursor(1, 1); 
+                // lcd.print(aux);
+                // aux++;
+
+                if(Elevador.posicaoAtual <= 0){
+                    flagFim = true;
+                }
+            }
+
+            else if (Elevador.state == SUBINDO || Elevador.state == ELEVADOR_EM_CIMA)  {
+
+                Elevador.posicaoAtual++;
+
+                // //debug
+                // lcd.setCursor(1, 1); 
+                // lcd.print(aux);
+                // aux++;
+
+                if(Elevador.posicaoAtual >= Elevador.posicaoFinal){
+                    flagFim = true;
+                }
+            }
+        }   
+    }
     
 }
 
