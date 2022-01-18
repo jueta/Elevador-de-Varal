@@ -30,8 +30,8 @@ LiquidCrystal_I2C lcd(0x27, 2, 1, 0, 4, 5, 6, 7, 3, POSITIVE);
 //PINOS
 const int RPWM_Output = 5; // Arduino PWM output pin 5; connect to IBT-2 pin 1 (RPWM) 
 const int LPWM_Output = 6; // Arduino PWM output pin 6; connect to IBT-2 pin 2 (LPWM) 
-const int BOTAO_SOBE = 3; 
-const int BOTAO_LIGA = 0; 
+const int BOTAO_SOBE = 7; 
+const int BOTAO_LIGA = 3; 
 const int BOTAO_DESCE = 4; 
 const int BOTAO_RESET = 10; 
 const int BOTAO_SALVA_SOBE = 11;
@@ -95,12 +95,16 @@ void setup() {
     pinMode(voltageSensor,INPUT); 
     pinMode(encoder,INPUT);
 
+    Serial.begin(9600);
+
     wdt_enable(WDTO_8S);
 
     attachInterrupt(digitalPinToInterrupt(encoder), holeCounter, FALLING);
 
     MsTimer2::set(10, BrownOutDetect); // 1ms period
     MsTimer2::start();
+
+    Serial.print("Ligando \n");
 }
 
 
@@ -117,6 +121,7 @@ void fimDescida(){
         lcd.print("Varal embaixo"); 
         lcd.setCursor(0, 1); 
         lcd.print("Tecle subir"); 
+        Serial.print("Fim descida \n");
 
         Elevador.state = ELEVADOR_EM_BAIXO;
 
@@ -135,6 +140,7 @@ void fimSubida(){
         lcd.print("Varal em cima"); 
         lcd.setCursor(0, 1); 
         lcd.print("Tecle descer");
+        Serial.print("Fim subida \n");
 
         Elevador.state = ELEVADOR_EM_CIMA;
 
@@ -159,7 +165,8 @@ void BrownOutDetect() {    //detecta a queda de tensao no pino A3 e salva tudo
             EEPROM.write(1, Elevador.posicaoFinal);
             EEPROM.write(2,Elevador.state);
             lcd.setCursor(10, 1); 
-            lcd.print(analogRead("Saved"));
+            // lcd.print(analogRead("Saved"));
+            Serial.print("BrownOut Detected! \n");
         }
 
 } 
@@ -247,6 +254,10 @@ void calcula() {    //calcula a corrente para comparaçao do peso
     }            
     current = current/100;    
 
+    Serial.print("Corrente:");
+    Serial.print(current);
+    Serial.print("\n");
+
     // // //debug
     // lcd.setCursor(7,0);
     // lcd.print(current);
@@ -285,6 +296,7 @@ void salva_descida(){
 
         lcd.setCursor(0, 0);
         lcd.print("Descida Salva");
+        Serial.print("Descida Salva! \n");
         lcd.setCursor(0, 1); 
         lcd.print("salvar subida");  
         lcd.setCursor(10,0);
@@ -335,6 +347,7 @@ void salva_subida(){
         
         lcd.setCursor(0, 0);
         lcd.print("Elevador Pronto");
+        Serial.print("Subida Salva \n");
         lcd.setCursor(0, 1); 
         lcd.print("Tecle descer");  
         lcd.setCursor(10,0);
@@ -376,6 +389,7 @@ void func_descida(){
     lcd.clear();
     lcd.setCursor(0, 1); 
     lcd.print("Varal descendo");
+    Serial.print("Varal Descendo! \n");
 
     analogWrite(LPWM_Output, 0); 
     analogWrite(RPWM_Output, 170);
@@ -394,6 +408,7 @@ void func_subida(){
     lcd.clear();
     lcd.setCursor(0, 1); 
     lcd.print("Varal Subindo");
+    Serial.print("Varal Subindo! \n");
     
     analogWrite(LPWM_Output, 170); 
     analogWrite(RPWM_Output, 0);
@@ -407,6 +422,7 @@ void func_reset(){
     lcd.clear(); 
     lcd.setCursor(0, 0); 
     lcd.print("RESET");
+    Serial.print("RESET \n");
     lcd.setCursor(0, 1); 
     lcd.print("salvar descida");
 
@@ -425,6 +441,7 @@ void func_reset(){
 
 void loop() {    
 
+
     if (Elevador.onOff == 0) {       //Elevador DESLIGADO
         analogWrite(LPWM_Output, 0); 
         analogWrite(RPWM_Output, 0); 
@@ -442,6 +459,7 @@ void loop() {
             if(Elevador.state == ELEVADOR_EM_BAIXO){
                 lcd.setCursor(0, 0); 
                 lcd.print("Varal em baixo"); 
+                Serial.print("Varal em baixo \n");
                 lcd.setCursor(0, 1); 
                 lcd.print("Tecle subir"); 
             }
@@ -449,6 +467,7 @@ void loop() {
             if(Elevador.state == ELEVADOR_EM_CIMA){
                 lcd.setCursor(0, 0); 
                 lcd.print("Varal em cima"); 
+                Serial.print("Varal em cima \n");
                 lcd.setCursor(0, 1); 
                 lcd.print("Tecle descer"); 
             }
