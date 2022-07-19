@@ -35,7 +35,7 @@ unsigned long timeCounter;
 int aux = 0;
 int currAux = 0;
 bool flagFim = false;
-unsigned long currTimer;
+unsigned long currTimer = 0;
 
 Varal Elevador;
 
@@ -103,6 +103,8 @@ void loop()
                 lcd.setCursor(0, 0);
                 lcd.print("Varal em baixo");
                 Serial.print("Varal em baixo \n");
+                Serial.print("Elevador.posicaoAtual = ");
+                Serial.println(Elevador.posicaoAtual);
                 lcd.setCursor(0, 1);
                 lcd.print("Tecle subir");
             }
@@ -112,6 +114,8 @@ void loop()
                 lcd.setCursor(0, 0);
                 lcd.print("Varal em cima");
                 Serial.print("Varal em cima \n");
+                Serial.print("Elevador.posicaoAtual = ");
+                Serial.println(Elevador.posicaoAtual);
                 lcd.setCursor(0, 1);
                 lcd.print("Tecle descer");
             }
@@ -431,6 +435,8 @@ void fimDescida()
     lcd.setCursor(0, 1);
     lcd.print("Tecle subir");
     Serial.print("Fim descida \n");
+    Serial.print("Elevador.posicalAtual = ");
+    Serial.println(Elevador.posicaoAtual);
 
     Elevador.state = ELEVADOR_EM_BAIXO;
 }
@@ -450,6 +456,8 @@ void fimSubida()
     lcd.setCursor(0, 1);
     lcd.print("Tecle descer");
     Serial.print("Fim subida \n");
+    Serial.print("Elevador.posicalAtual = ");
+    Serial.println(Elevador.posicaoAtual);
 
     Elevador.state = ELEVADOR_EM_CIMA;
 }
@@ -473,9 +481,10 @@ void BrownOutDetect()
         EEPROM.write(0, Elevador.posicaoAtual); // Salva a posicao que parou
         EEPROM.write(1, Elevador.posicaoFinal);
         EEPROM.write(2, Elevador.state);
-        lcd.setCursor(10, 1);
-        // lcd.print(analogRead("Saved"));
         Serial.print("BrownOut Detected! \n");
+        Serial.print("Saved! \n");
+        // lcd.setCursor(10, 1);
+        // lcd.print(analogRead("Saved"));
     }
 }
 
@@ -564,7 +573,7 @@ void calcula()
 
     if ((millis() - currTimer) >= 100)
     {
-        if (currAux < 10)
+        if (currAux < 5)
         {
             currAux++;
             voltage_raw = (5.0 / 1023.0) * analogRead(voltageSensor); // Read the voltage from sensor
@@ -573,16 +582,11 @@ void calcula()
         }
         else
         {
-            currAux = 0;
-            current = current / 10;
+            current = current / (currAux - 1);
 
             Serial.print("Corrente:");
             Serial.print(current);
             Serial.print("\n");
-
-            // //debug
-            lcd.setCursor(7, 0);
-            lcd.print(current);
 
             // if(current > 14){   //MUDAR PARA 14 depois
             //     lcd.clear();
@@ -602,11 +606,11 @@ void calcula()
             //         EEPROM.write(2, Elevador.state);
             //     }
             // }
+            currAux = 0;
             current = 0.0;
         }
+        currTimer = millis();
     }
-
-    currTimer = millis();
 }
 
 void salva_descida()
@@ -626,8 +630,8 @@ void salva_descida()
         Serial.print("Descida Salva! \n");
         lcd.setCursor(0, 1);
         lcd.print("salvar subida");
-        lcd.setCursor(10, 0);
-        lcd.print(Elevador.posicaoAtual);
+        Serial.print("Elevador.posicaoAtual = ");
+        Serial.println(Elevador.posicaoAtual);
 
         Elevador.posicaoFinal = 0;
         Elevador.posicaoFinal = 0;
@@ -644,6 +648,7 @@ void salva_descida()
         lcd.clear();
         lcd.setCursor(0, 0);
         lcd.print("Salvando Descida");
+        Serial.println("Salvando Descida");
 
         Elevador.salvandoFlag = true;
         Elevador.posicaoAtual = 0;
@@ -678,8 +683,10 @@ void salva_subida()
         Serial.print("Subida Salva \n");
         lcd.setCursor(0, 1);
         lcd.print("Tecle descer");
-        lcd.setCursor(10, 0);
-        lcd.print(Elevador.posicaoAtual);
+        Serial.println("Elevador Pronto");
+        Serial.println("Tecle descer");
+        // lcd.setCursor(10, 0);
+        // lcd.print(Elevador.posicaoAtual);
 
         Elevador.posicaoFinal = Elevador.posicaoAtual;
         Elevador.state = ELEVADOR_EM_CIMA;
@@ -695,6 +702,7 @@ void salva_subida()
         lcd.clear();
         lcd.setCursor(0, 0);
         lcd.print("Salvando Subida");
+        Serial.println("Salvando Subida");
 
         Elevador.salvandoFlag = true;
 
