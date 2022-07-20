@@ -237,14 +237,9 @@ void loop()
 
             // calcula();
 
-            if (flagFim == true)
-            {
-                fimSubida();
-            }
-
-            // if(digitalRead(BOTAO_SOBE) == HIGH){
+            // if(digitalRead(BOTAO_SOBE) == HIGH){ // cancelamento de emergencia
             //     while(digitalRead(BOTAO_SOBE) == HIGH);
-            //         Elevador.onOff = 0; // cancelamento de emergencia
+            //         Elevador.onOff = 0;
             // }
 
             if (Elevador.salvandoFlag == true && digitalRead(BOTAO_SALVA_SOBE) == HIGH)
@@ -305,17 +300,11 @@ void loop()
         case DESCENDO:
         {
 
-
-            if (flagFim == true)
-            {
-                fimDescida();
-            }
-            
             calcula();
 
-            // if(digitalRead(BOTAO_DESCE) == HIGH){
+            // if(digitalRead(BOTAO_DESCE) == HIGH){ // cancelamento de emergencia
             //     while(digitalRead(BOTAO_DESCE) == HIGH);
-            //         Elevador.onOff = 0; // cancelamento de emergencia
+            //         Elevador.onOff = 0; 
             // }
 
             if (Elevador.salvandoFlag == true && digitalRead(BOTAO_SALVA_DESCE) == HIGH)
@@ -346,11 +335,6 @@ void loop()
 
         case ELEVADOR_EM_BAIXO:
         {
-
-            // // //debug
-            // lcd.setCursor(1, 1);
-            // lcd.print(aux);
-            // aux++;
 
             if (digitalRead(BOTAO_SOBE) == HIGH)
             {
@@ -422,8 +406,6 @@ void loop()
 void fimDescida()
 {
 
-    flagFim = false;
-
     analogWrite(LPWM_Output, 0);
     analogWrite(RPWM_Output, 0);
     Elevador.motor = 0;
@@ -442,9 +424,6 @@ void fimDescida()
 
 void fimSubida()
 {
-
-    flagFim = false;
-
     analogWrite(LPWM_Output, 0);
     analogWrite(RPWM_Output, 0);
     Elevador.motor = 0;
@@ -482,8 +461,7 @@ void BrownOutDetect()
         EEPROM.write(2, Elevador.state);
         Serial.print("BrownOut Detected! \n");
         Serial.print("Saved! \n");
-        // lcd.setCursor(10, 1);
-        // lcd.print(analogRead("Saved"));
+
     }
 }
 
@@ -537,14 +515,9 @@ void holeCounter()
 
                 Elevador.posicaoAtual--;
 
-                // //debug
-                // lcd.setCursor(1, 1);
-                // lcd.print(aux);
-                // aux++;
-
                 if (Elevador.posicaoAtual <= 0)
                 {
-                    flagFim = true;
+                    fimDescida();
                 }
             }
 
@@ -553,14 +526,9 @@ void holeCounter()
 
                 Elevador.posicaoAtual++;
 
-                // //debug
-                // lcd.setCursor(1, 1);
-                // lcd.print(aux);
-                // aux++;
-
                 if (Elevador.posicaoAtual >= Elevador.posicaoFinal)
                 {
-                    flagFim = true;
+                    fimSubida();
                 }
             }
         }
@@ -678,8 +646,7 @@ void salva_subida()
         lcd.print("Tecle descer");
         Serial.println("Elevador Pronto");
         Serial.println("Tecle descer");
-        // lcd.setCursor(10, 0);
-        // lcd.print(Elevador.posicaoAtual);
+
 
         Elevador.posicaoFinal = Elevador.posicaoAtual;
         Elevador.state = ELEVADOR_EM_CIMA;
