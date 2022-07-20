@@ -21,7 +21,7 @@ const int BOTAO_RESET = 10;
 const int BOTAO_SALVA_SOBE = 11;
 const int BOTAO_SALVA_DESCE = 12;
 const int encoder = 2; // Mudar para pino 2 ou 3
-const int voltageSensor = A0;
+const int currentSensor = A0;
 const int powerOffSensor = A2;
 
 // VARIAVEIS
@@ -29,11 +29,9 @@ static volatile unsigned long debounce = 0;
 const float VCC = 5.0;       // supply voltage is from 4.5 to 5.5V. Normally 5V.
 const float QOV = 0.5 * VCC; // set quiescent Output voltage of 0.5V.
 float voltage;               // internal variable for voltage
-float current = 0;
 float voltage_raw = 0;
 unsigned long timeCounter;
 int aux = 0;
-int currAux = 0;
 bool flagFim = false;
 unsigned long currTimer = 0;
 
@@ -63,7 +61,7 @@ void setup()
     pinMode(BOTAO_RESET, INPUT);
     pinMode(BOTAO_SALVA_SOBE, INPUT);
     pinMode(BOTAO_SALVA_DESCE, INPUT);
-    pinMode(voltageSensor, INPUT);
+    pinMode(currentSensor, INPUT);
     pinMode(encoder, INPUT);
 
     Serial.begin(9600);
@@ -237,7 +235,7 @@ void loop()
         case SUBINDO:
         {
 
-            calcula();
+            // calcula();
 
             if (flagFim == true)
             {
@@ -307,12 +305,13 @@ void loop()
         case DESCENDO:
         {
 
-            calcula();
 
             if (flagFim == true)
             {
                 fimDescida();
             }
+            
+            calcula();
 
             // if(digitalRead(BOTAO_DESCE) == HIGH){
             //     while(digitalRead(BOTAO_DESCE) == HIGH);
@@ -571,44 +570,38 @@ void holeCounter()
 void calcula()
 { // calcula a corrente para comparaçao do peso
 
-    if ((millis() - currTimer) >= 100)
+    if ((millis() - currTimer) >= 200)
     {
-        if (currAux < 5)
-        {
-            currAux++;
-            voltage_raw = (5.0 / 1023.0) * analogRead(voltageSensor); // Read the voltage from sensor
-            voltage = voltage_raw - QOV + 0.012;                      // 0.000 is a value to make voltage zero when there is no current
-            current = current + (voltage / 0.100);
+
+        voltage_raw = (30 / 1023.0) * analogRead(currentSensor); // Read the voltage from sensor
+        // voltage = voltage_raw - QOV + 0.012;                      // 0.000 is a value to make voltage zero when there is no current
+
+        Serial.print("voltage_raw = ");
+        Serial.println(voltage_raw);
+
+        if (voltage_raw > 20)
+        { // SOBRECARGA
+            lcd.clear();
+            analogWrite(LPWM_Output, 0);
+            analogWrite(RPWM_Output, 0);
+            Elevador.motor = 0;
+
+            lcd.setCursor(0, 0);
+            lcd.print("Sobrecarga");
+            Serial.println("Sobrecarga");
+
+            if (Elevador.state == DESCIDA_SALVADA)
+            {
+                lcd.setCursor(0, 1);
+                lcd.print("tecle descer");
+            }
+            else
+            {
+                Elevador.state = SOBRECARGA;
+                EEPROM.write(2, Elevador.state);
+            }
         }
-        else
-        {
-            current = current / (currAux - 1);
 
-            Serial.print("Corrente:");
-            Serial.print(current);
-            Serial.print("\n");
-
-            // if(current > 14){   //MUDAR PARA 14 depois
-            //     lcd.clear();
-            //     analogWrite(LPWM_Output, 0);
-            //     analogWrite(RPWM_Output, 0);
-            //     Elevador.motor = 0;
-
-            //     lcd.setCursor(0,0);
-            //     lcd.print("Sobrecarga");
-
-            //     if(Elevador.state == DESCIDA_SALVADA){
-            //         lcd.setCursor(0,1);
-            //         lcd.print("tecle descer");
-            //     }
-            //     else{
-            //         Elevador.state = SOBRECARGA;
-            //         EEPROM.write(2, Elevador.state);
-            //     }
-            // }
-            currAux = 0;
-            current = 0.0;
-        }
         currTimer = millis();
     }
 }
